@@ -274,18 +274,52 @@ def main():
         st.markdown("## 📊 策略设置")
         
         # 股票选择
+        stock_categories = {
+            "🇺🇸 美股热门": ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "NVDA", "META", "NFLX", "AMD", "INTC"],
+            "📈 指数ETF": ["SPY", "QQQ", "IWM", "VTI", "VOO", "DIA"],
+            "🇨🇳 中概股": ["BABA", "JD", "PDD", "BIDU", "NIO", "XPEV", "LI", "BILI", "TME", "NTES"],
+            "🏦 金融": ["JPM", "BAC", "WFC", "GS", "MS", "C"],
+            "🏥 医疗": ["JNJ", "PFE", "UNH", "ABBV", "MRK", "TMO"],
+            "⚡ 能源": ["XOM", "CVX", "COP", "SLB", "EOG", "PXD"],
+            "🛒 消费": ["WMT", "HD", "MCD", "NKE", "SBUX", "DIS"],
+            "🏭 工业": ["BA", "CAT", "GE", "MMM", "HON", "UPS"],
+            "💎 贵金属": ["GLD", "SLV", "GOLD", "NEM", "ABX"],
+            "🚗 汽车": ["TSLA", "F", "GM", "TM", "HMC"],
+            "🏠 房地产": ["AMT", "PLD", "CCI", "EQIX", "PSA"],
+            "🎮 科技新兴": ["RBLX", "U", "SNOW", "PLTR", "CRWD", "ZM", "SHOP", "SQ"]
+        }
+        
+        selected_category = st.selectbox(
+            "选择股票类别",
+            list(stock_categories.keys()),
+            index=0
+        )
+        
         symbol = st.selectbox(
-            "选择股票",
-            ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "NVDA"],
+            "选择具体股票",
+            stock_categories[selected_category],
             index=0
         )
         
         # 时间范围
         period = st.selectbox(
             "分析周期",
-            ["6mo", "1y", "2y", "5y"],
-            index=1
+            ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y"],
+            index=3,
+            help="选择数据分析的时间范围"
         )
+        
+        # 添加自定义股票输入
+        st.markdown("---")
+        custom_symbol = st.text_input(
+            "或输入自定义股票代码",
+            placeholder="如: AAPL, GOOGL, BRK-B",
+            help="输入任何有效的股票代码，将覆盖上方选择"
+        )
+        
+        # 如果有自定义输入，使用自定义股票
+        if custom_symbol.strip():
+            symbol = custom_symbol.strip().upper()
         
         # 初始资金
         initial_capital = st.number_input(
