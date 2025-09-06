@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'pandas',
         'numpy',
+        'yfinance>=0.2.18',
         'python-binance>=1.0.0',
         'websocket-client>=1.0.0',
         'websockets>=10.0',
