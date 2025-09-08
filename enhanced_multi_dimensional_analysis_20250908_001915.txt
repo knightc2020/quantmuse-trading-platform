@@ -1,0 +1,32 @@
+增强版多维度游资策略分析结果
+分析时间: 2025-09-08 00:19:15.667950
+数据范围: 基于10年完整历史数据 (2015-2025)
+分析维度: 6张核心数据表综合分析
+
+=== 分析结果概要 ===
+basic_hotmoney: <class 'dict'>
+money_flow_patterns: <class 'dict'>
+hotmoney_vs_institutions: <class 'dict'>
+market_hotspots: <class 'dict'>
+temporal_trends: <class 'dict'>
+
+=== 投资信号详情 ===
+{'stock_code': '688158.SH', 'seat_name': '葛卫东', 'net_amount': 128849431.25, 'trade_date': '2025-02-14', 'score': 128.02, 'win_rate': 83.3, 'efficiency': 84.29, 'weight': 0.05196835359585067, 'confidence': 100, 'is_hotspot': True, 'signal_strength': 'STRONG'}
+{'stock_code': '600126.SH', 'seat_name': '葛卫东', 'net_amount': 89894766.2, 'trade_date': '2025-02-14', 'score': 128.02, 'win_rate': 83.3, 'efficiency': 84.29, 'weight': 0.05196835359585067, 'confidence': 100, 'is_hotspot': False, 'signal_strength': 'STRONG'}
+{'stock_code': '603881.SH', 'seat_name': '葛卫东', 'net_amount': 78464275.66, 'trade_date': '2025-02-14', 'score': 128.02, 'win_rate': 83.3, 'efficiency': 84.29, 'weight': 0.05196835359585067, 'confidence': 100, 'is_hotspot': False, 'signal_strength': 'STRONG'}
+{'stock_code': '688393.SH', 'seat_name': '炒股养家', 'net_amount': 6708958.75, 'trade_date': '2025-02-14', 'score': 111.96, 'win_rate': 71.4, 'efficiency': 66.19, 'weight': 0.05196835359585067, 'confidence': 88.81833333333334, 'is_hotspot': False, 'signal_strength': 'STRONG'}
+{'stock_code': '688358.SH', 'seat_name': '炒股养家', 'net_amount': 6313468.0, 'trade_date': '2025-02-14', 'score': 111.96, 'win_rate': 71.4, 'efficiency': 66.19, 'weight': 0.05196835359585067, 'confidence': 88.81833333333334, 'is_hotspot': False, 'signal_strength': 'STRONG'}
+{'stock_code': '603918.SH', 'seat_name': '炒股养家', 'net_amount': 133908345.8, 'trade_date': '2025-02-14', 'score': 111.96, 'win_rate': 71.4, 'efficiency': 66.19, 'weight': 0.05196835359585067, 'confidence': 88.81833333333334, 'is_hotspot': True, 'signal_strength': 'STRONG'}
+{'stock_code': '300454.SZ', 'seat_name': '章盟主', 'net_amount': 66799100.0, 'trade_date': '2025-02-14', 'score': 131.77, 'win_rate': 63.2, 'efficiency': 33.04, 'weight': 0.05196835359585067, 'confidence': 87.16333333333334, 'is_hotspot': False, 'signal_strength': 'STRONG'}
+{'stock_code': '603768.SH', 'seat_name': '量化打板', 'net_amount': 9478605.0, 'trade_date': '2025-02-14', 'score': 108.72, 'win_rate': 69.2, 'efficiency': 37.81, 'weight': 0.05196835359585067, 'confidence': 82.275, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '002112.SZ', 'seat_name': '量化打板', 'net_amount': 30705557.0, 'trade_date': '2025-02-14', 'score': 108.72, 'win_rate': 69.2, 'efficiency': 37.81, 'weight': 0.05196835359585067, 'confidence': 82.275, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '002016.SZ', 'seat_name': '量化打板', 'net_amount': 5982652.0, 'trade_date': '2025-02-14', 'score': 108.72, 'win_rate': 69.2, 'efficiency': 37.81, 'weight': 0.05196835359585067, 'confidence': 82.275, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '835305.BJ', 'seat_name': '玉兰路', 'net_amount': 12948972.79, 'trade_date': '2025-02-14', 'score': 90.09, 'win_rate': 71.4, 'efficiency': 51.56, 'weight': 0.05196835359585067, 'confidence': 79.09, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '603956.SH', 'seat_name': '玉兰路', 'net_amount': 16565857.0, 'trade_date': '2025-02-14', 'score': 90.09, 'win_rate': 71.4, 'efficiency': 51.56, 'weight': 0.05196835359585067, 'confidence': 79.09, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '300249.SZ', 'seat_name': '玉兰路', 'net_amount': 29164155.0, 'trade_date': '2025-02-12', 'score': 90.09, 'win_rate': 71.4, 'efficiency': 51.56, 'weight': 0.05196835359585067, 'confidence': 79.09, 'is_hotspot': False, 'signal_strength': 'MODERATE'}
+{'stock_code': '600797.SH', 'seat_name': '炒新一族', 'net_amount': 35666945.0, 'trade_date': '2025-02-14', 'score': 83.78, 'win_rate': 50.0, 'efficiency': 50.76, 'weight': 0.05196835359585067, 'confidence': 69.72, 'is_hotspot': True, 'signal_strength': 'WEAK'}
+{'stock_code': '002044.SZ', 'seat_name': '炒新一族', 'net_amount': 91611704.0, 'trade_date': '2025-02-14', 'score': 83.78, 'win_rate': 50.0, 'efficiency': 50.76, 'weight': 0.0510223671593012, 'confidence': 69.72, 'is_hotspot': False, 'signal_strength': 'WEAK'}
+{'stock_code': '688168.SH', 'seat_name': '炒新一族', 'net_amount': 40940521.54, 'trade_date': '2025-02-13', 'score': 83.78, 'win_rate': 50.0, 'efficiency': 50.76, 'weight': 0.0510223671593012, 'confidence': 69.72, 'is_hotspot': False, 'signal_strength': 'WEAK'}
+{'stock_code': '603636.SH', 'seat_name': '赵老哥', 'net_amount': 15423324.0, 'trade_date': '2025-02-14', 'score': 82.67, 'win_rate': 52.4, 'efficiency': 19.57, 'weight': 0.0401327717798294, 'confidence': 64.95166666666667, 'is_hotspot': False, 'signal_strength': 'WEAK'}
+{'stock_code': '600843.SH', 'seat_name': '赵老哥', 'net_amount': 6647089.03, 'trade_date': '2025-02-14', 'score': 82.67, 'win_rate': 52.4, 'efficiency': 19.57, 'weight': 0.0401327717798294, 'confidence': 64.95166666666667, 'is_hotspot': False, 'signal_strength': 'WEAK'}
+{'stock_code': '300530.SZ', 'seat_name': '赵老哥', 'net_amount': 10451734.0, 'trade_date': '2025-02-14', 'score': 82.67, 'win_rate': 52.4, 'efficiency': 19.57, 'weight': 0.0401327717798294, 'confidence': 64.95166666666667, 'is_hotspot': False, 'signal_strength': 'WEAK'}

@@ -1,0 +1,13 @@
+增强版多维度游资策略分析结果
+分析时间: 2025-09-08 00:17:39.502277
+数据范围: 基于10年完整历史数据 (2015-2025)
+分析维度: 6张核心数据表综合分析
+
+=== 分析结果概要 ===
+basic_hotmoney: <class 'dict'>
+money_flow_patterns: <class 'dict'>
+hotmoney_vs_institutions: <class 'dict'>
+market_hotspots: <class 'dict'>
+temporal_trends: <class 'dict'>
+
+=== 投资信号详情 ===

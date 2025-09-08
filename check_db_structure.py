@@ -9,10 +9,18 @@ import pandas as pd
 
 def check_database_structure():
     """检查数据库表结构"""
+    import os
+    from dotenv import load_dotenv
     
-    # Supabase配置
-    url = "https://rnnflvgioxbrfdznodel.supabase.co"
-    key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJubmZsdmdpb3hicmZkem5vZGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMDU4MjUsImV4cCI6MjA2ODU4MTgyNX0.95D04EwbpWODnFPCYQv-19su52uNjmAYP5jmGQLM7nE"
+    # Load environment variables
+    load_dotenv()
+    
+    # Supabase配置从环境变量读取
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY")
+    
+    if not url or not key:
+        raise ValueError("请在.env文件中设置SUPABASE_URL和SUPABASE_KEY")
     
     try:
         client = create_client(url, key)

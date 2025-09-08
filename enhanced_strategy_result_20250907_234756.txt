@@ -1,0 +1,40 @@
+增强版游资跟投策略回测结果
+分析时间: 2025-09-07 23:47:56.444527
+数据记录: 1000 条
+优质游资: 8 个
+投资信号: 27 个
+
+=== 回测表现 ===
+total_signals: 25
+successful_signals: 14
+win_rate: 56.00000000000001
+avg_return: 0.4833761519971203
+weighted_return: 0.16878272545379677
+max_return: 9.124994277954102
+min_return: -9.214710047086315
+volatility: 3.8448662882038933
+total_weight: 0.8763214501214862
+best_signal: {'stock_code': '300249.SZ', 'seat_name': '玉兰路...', 'entry_date': '2025-08-05', 'exit_date': '2025-08-11', 'entry_price': 16.0, 'exit_price': 17.459999084472656, 'returns_pct': 9.124994277954102, 'weight': 0.03457322792756276, 'weighted_return': 0.31548050700941316, 'score': 72.23, 'confidence': 71.815}
+worst_signal: {'stock_code': '603918.SH', 'seat_name': '炒股养家...', 'entry_date': '2025-08-05', 'exit_date': '2025-08-11', 'entry_price': 22.030000686645508, 'exit_price': 20.0, 'returns_pct': -9.214710047086315, 'weight': 0.03773713539815932, 'weighted_return': -0.34773676070167536, 'score': 87.6, 'confidence': 79.5}
+
+=== 详细信号 ===
+{'stock_code': '688158.SH', 'seat_name': '葛卫东', 'net_amount': 128849431.25, 'trade_date': '2025-02-14', 'score': 104.52, 'win_rate': 83.3, 'stability': 0.9, 'weight': 0.07445739550908036, 'confidence': 93.91}
+{'stock_code': '600126.SH', 'seat_name': '葛卫东', 'net_amount': 89894766.2, 'trade_date': '2025-02-14', 'score': 104.52, 'win_rate': 83.3, 'stability': 0.9, 'weight': 0.07445739550908036, 'confidence': 93.91}
+{'stock_code': '603881.SH', 'seat_name': '葛卫东', 'net_amount': 78464275.66, 'trade_date': '2025-02-14', 'score': 104.52, 'win_rate': 83.3, 'stability': 0.9, 'weight': 0.07445739550908036, 'confidence': 93.91}
+{'stock_code': '000681.SZ', 'seat_name': '葛卫东', 'net_amount': 237876266.0, 'trade_date': '2025-02-13', 'score': 104.52, 'win_rate': 83.3, 'stability': 0.9, 'weight': 0.07445739550908036, 'confidence': 93.91}
+{'stock_code': '603666.SH', 'seat_name': '葛卫东', 'net_amount': 104070000.0, 'trade_date': '2025-02-13', 'score': 104.52, 'win_rate': 83.3, 'stability': 0.9, 'weight': 0.07445739550908036, 'confidence': 93.91}
+{'stock_code': '002261.SZ', 'seat_name': '章盟主', 'net_amount': 317249137.0, 'trade_date': '2025-02-14', 'score': 107.75, 'win_rate': 63.2, 'stability': 0.2, 'weight': 0.022616433885883157, 'confidence': 85.475}
+{'stock_code': '002044.SZ', 'seat_name': '章盟主', 'net_amount': 241566709.0, 'trade_date': '2025-02-14', 'score': 107.75, 'win_rate': 63.2, 'stability': 0.2, 'weight': 0.022616433885883157, 'confidence': 85.475}
+{'stock_code': '300454.SZ', 'seat_name': '章盟主', 'net_amount': 66799100.0, 'trade_date': '2025-02-14', 'score': 107.75, 'win_rate': 63.2, 'stability': 0.2, 'weight': 0.022616433885883157, 'confidence': 85.475}
+{'stock_code': '603918.SH', 'seat_name': '炒股养家', 'net_amount': 133908345.8, 'trade_date': '2025-02-14', 'score': 87.6, 'win_rate': 71.4, 'stability': 0.4, 'weight': 0.03773713539815932, 'confidence': 79.5}
+{'stock_code': '301396.SZ', 'seat_name': '炒股养家', 'net_amount': 54834864.0, 'trade_date': '2025-02-14', 'score': 87.6, 'win_rate': 71.4, 'stability': 0.4, 'weight': 0.03773713539815932, 'confidence': 79.5}
+{'stock_code': '002649.SZ', 'seat_name': '炒股养家', 'net_amount': 44752881.0, 'trade_date': '2025-02-13', 'score': 87.6, 'win_rate': 71.4, 'stability': 0.4, 'weight': 0.03633946371674602, 'confidence': 79.5}
+{'stock_code': '300344.SZ', 'seat_name': '炒股养家', 'net_amount': 29993504.0, 'trade_date': '2025-02-13', 'score': 87.6, 'win_rate': 71.4, 'stability': 0.4, 'weight': 0.03633946371674602, 'confidence': 79.5}
+{'stock_code': '600811.SH', 'seat_name': '炒股养家', 'net_amount': 19849673.0, 'trade_date': '2025-02-13', 'score': 87.6, 'win_rate': 71.4, 'stability': 0.4, 'weight': 0.03633946371674602, 'confidence': 79.5}
+{'stock_code': '002112.SZ', 'seat_name': '量化打板', 'net_amount': 30705557.0, 'trade_date': '2025-02-14', 'score': 87.51, 'win_rate': 69.2, 'stability': 0.32, 'weight': 0.030158691494912532, 'confidence': 78.355}
+{'stock_code': '603768.SH', 'seat_name': '量化打板', 'net_amount': 9478605.0, 'trade_date': '2025-02-14', 'score': 87.51, 'win_rate': 69.2, 'stability': 0.32, 'weight': 0.030158691494912532, 'confidence': 78.355}
+{'stock_code': '600868.SH', 'seat_name': '量化打板', 'net_amount': 12810114.0, 'trade_date': '2025-02-13', 'score': 87.51, 'win_rate': 69.2, 'stability': 0.32, 'weight': 0.029041702921026886, 'confidence': 78.355}
+{'stock_code': '601599.SH', 'seat_name': '量化打板', 'net_amount': 10993837.0, 'trade_date': '2025-02-13', 'score': 87.51, 'win_rate': 69.2, 'stability': 0.32, 'weight': 0.029041702921026886, 'confidence': 78.355}
+{'stock_code': '002364.SZ', 'seat_name': '量化打板', 'net_amount': 58063556.0, 'trade_date': '2025-02-12', 'score': 87.51, 'win_rate': 69.2, 'stability': 0.32, 'weight': 0.027924714347141236, 'confidence': 78.355}
+{'stock_code': '603956.SH', 'seat_name': '玉兰路', 'net_amount': 16565857.0, 'trade_date': '2025-02-14', 'score': 72.23, 'win_rate': 71.4, 'stability': 0.48, 'weight': 0.03733908616176778, 'confidence': 71.815}
+{'stock_code': '835305.BJ', 'seat_name': '玉兰路', 'net_amount': 12948972.79, 'trade_date': '2025-02-14', 'score': 72.23, 'win_rate': 71.4, 'stability': 0.48, 'weight': 0.03733908616176778, 'confidence': 71.815}
