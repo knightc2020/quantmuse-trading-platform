@@ -12,7 +12,7 @@ from typing import Optional, Dict, List, Any
 import json
 
 from .supabase_client import SupabaseDataClient
-from .tonghuashun_client import TonghuasunDataClient
+from .tonghuashun_client import TonghuasunDataClient, get_tonghuashun_client
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +24,8 @@ class DataSynchronizer:
     def __init__(self):
         """初始化数据同步器"""
         self.supabase_client = SupabaseDataClient()
-        self.ths_client = TonghuasunDataClient()
+        # 统一使用全局同花顺客户端，避免重复登录导致 -201
+        self.ths_client = get_tonghuashun_client()
         
         # 表字段映射配置
         self.table_mappings = {
@@ -63,18 +64,29 @@ class DataSynchronizer:
                 'field_mapping': {
                     'time': 'trade_date',
                     'stock_code': 'code',
+                    # 官方/实时与历史常见字段（若存在则映射）
+                    'preClose': 'pre_close',
                     'open': 'open',
                     'high': 'high',
                     'low': 'low',
                     'close': 'close',
                     'volume': 'volume',
                     'amount': 'amount',
-                    'turn': 'turnover',
+                    'turn': 'turnover_ratio',
+                    'turnoverRatio': 'turnover_ratio',
                     'pctChg': 'pct_chg',
+                    'change': 'change',
+                    'changeRatio': 'change_ratio',
+                    'upperLimit': 'upper_limit',
+                    'downLimit': 'lower_limit',
+                    'riseDayCount': 'rise_day_count',
+                    'suspensionFlag': 'suspension_flag',
+                    'tradeStatus': 'trade_status',
                     'avgPrice': 'avg_price',
                     'pe_ttm': 'pe_ttm',
                     'pb': 'pb',
-                    'total_mv': 'total_mv'
+                    'total_mv': 'total_mv',
+                    'mv': 'mv'
                 },
                 'calculated_fields': {}
             }
@@ -83,7 +95,13 @@ class DataSynchronizer:
     def check_connection(self) -> bool:
         """检查连接状态"""
         supabase_ok = self.supabase_client.is_connected()
-        ths_ok = self.ths_client.is_logged_in if self.ths_client else False
+        # 主动确保同花顺登录，包含重试
+        ths_ok = False
+        if self.ths_client:
+            try:
+                ths_ok = self.ths_client._ensure_login()
+            except Exception:
+                ths_ok = False
         
         logger.info(f"Supabase连接状态: {'✓' if supabase_ok else '✗'}")
         logger.info(f"同花顺连接状态: {'✓' if ths_ok else '✗'}")
@@ -174,8 +192,10 @@ class DataSynchronizer:
             
             # 处理数值字段
             numeric_fields = ['buy_amt', 'sell_amt', 'net_amt', 'lhb_buy', 'lhb_sell', 'lhb_net_buy',
-                             'open', 'high', 'low', 'close', 'volume', 'amount', 'turnover', 'pct_chg',
-                             'avg_price', 'pe_ttm', 'pb', 'total_mv']
+                             'pre_close', 'open', 'high', 'low', 'close', 'volume', 'amount',
+                             'turnover_ratio', 'pct_chg', 'change', 'change_ratio',
+                             'upper_limit', 'lower_limit', 'rise_day_count', 'avg_price',
+                             'pe_ttm', 'pb', 'total_mv', 'mv']
             
             for field in numeric_fields:
                 if field in df_clean.columns:
@@ -183,14 +203,33 @@ class DataSynchronizer:
                     df_clean[field] = df_clean[field].fillna(0)
             
             # 处理字符串字段
-            text_fields = ['code', 'name', 'seat_name', 'seat_type', 'reason']
+            text_fields = ['code', 'name', 'seat_name', 'seat_type', 'reason', 'trade_status']
             for field in text_fields:
                 if field in df_clean.columns:
                     df_clean[field] = df_clean[field].astype(str).fillna('')
+
+            # 布尔字段
+            if 'suspension_flag' in df_clean.columns:
+                def _to_bool(x):
+                    s = str(x).strip().lower()
+                    if s in ('1', 'true', 't', 'yes', 'y'):
+                        return True
+                    if s in ('0', 'false', 'f', 'no', 'n'):
+                        return False
+                    try:
+                        return bool(float(s))
+                    except Exception:
+                        return False
+                df_clean['suspension_flag'] = df_clean['suspension_flag'].apply(_to_bool)
             
             # 去除重复记录
             if table_type == 'seat_daily':
-                df_clean = df_clean.drop_duplicates(subset=['trade_date', 'code', 'seat_name'], keep='last')
+                # 如果缺少 seat_name 列，则退化为按 trade_date+code 去重，避免 KeyError
+                if 'seat_name' in df_clean.columns:
+                    df_clean = df_clean.drop_duplicates(subset=['trade_date', 'code', 'seat_name'], keep='last')
+                else:
+                    logger.warning('seat_daily 数据缺少 seat_name 列，按 trade_date+code 去重并跳过席位明细写入')
+                    df_clean = df_clean.drop_duplicates(subset=['trade_date', 'code'], keep='last')
             elif table_type == 'trade_flow':
                 df_clean = df_clean.drop_duplicates(subset=['trade_date', 'code'], keep='last')
             elif table_type == 'daily_quotes':
@@ -214,6 +253,12 @@ class DataSynchronizer:
             return False
         
         target_table = self.table_mappings[table_type]['target_table']
+        # 设置 upsert 冲突键，确保后续补丁可覆盖早期仅 code/trade_date 的空记录
+        conflict_keys = {
+            'seat_daily': 'trade_date,code,seat_name',
+            'trade_flow': 'trade_date,code',
+            'daily_quotes': 'trade_date,code'
+        }.get(table_type, None)
         
         try:
             # 转换DataFrame为字典列表
@@ -228,7 +273,31 @@ class DataSynchronizer:
                 batch = records[i:i + batch_size]
                 
                 try:
-                    result = self.supabase_client.client.table(target_table).upsert(batch).execute()
+                    table = self.supabase_client.client.table(target_table)
+                    result = None
+                    # 优先使用带 on_conflict 的 upsert，以覆盖旧的空值记录
+                    try:
+                        if conflict_keys:
+                            result = table.upsert(
+                                batch,
+                                on_conflict=conflict_keys,
+                                ignore_duplicates=False,  # 强制合并而非忽略
+                                default_to_null=False     # 未提供的列不置为 NULL
+                            ).execute()
+                        else:
+                            result = table.upsert(batch).execute()
+                    except TypeError:
+                        # 兼容旧版 supabase-py 参数名
+                        try:
+                            if conflict_keys:
+                                result = table.upsert(
+                                    batch,
+                                    on_conflict=conflict_keys
+                                ).execute()
+                            else:
+                                result = table.upsert(batch).execute()
+                        except Exception as ie:
+                            raise ie
                     
                     if result.data:
                         success_count += len(batch)
@@ -254,25 +323,36 @@ class DataSynchronizer:
         logger.info(f"开始同步龙虎榜数据: {start_date} 到 {end_date or start_date}")
         
         try:
-            # 获取同花顺数据
-            ths_data = self.ths_client.get_dragon_tiger_data(start_date, end_date)
+            # 获取同花顺数据（拆分为：席位明细 + 交易流向）
+            flow_raw = self.ths_client.get_dragon_tiger_data(start_date, end_date)
+            seat_raw = self.ths_client.get_dragon_tiger_seat_data(start_date, end_date)
             
-            if ths_data is None or ths_data.empty:
-                logger.warning("未获取到龙虎榜数据")
+            if (flow_raw is None or flow_raw.empty) and (seat_raw is None or seat_raw.empty):
+                logger.warning("未获取到任何龙虎榜数据")
                 return False
             
             # 分别处理席位数据和交易流向数据
             success = True
             
             # 处理席位数据
-            seat_data = self.transform_data(ths_data, 'seat_daily')
-            if not seat_data.empty:
-                success &= self.write_to_supabase(seat_data, 'seat_daily')
+            if seat_raw is not None and not seat_raw.empty:
+                seat_data = self.transform_data(seat_raw, 'seat_daily')
+                if not seat_data.empty and 'seat_name' in seat_data.columns:
+                    success &= self.write_to_supabase(seat_data, 'seat_daily')
+                else:
+                    logger.info('席位数据转换后无 seat_name 列，跳过 seat_daily 表写入')
             
             # 处理交易流向数据  
-            flow_data = self.transform_data(ths_data, 'trade_flow')
-            if not flow_data.empty:
-                success &= self.write_to_supabase(flow_data, 'trade_flow')
+            if flow_raw is not None and not flow_raw.empty:
+                flow_data = self.transform_data(flow_raw, 'trade_flow')
+                if not flow_data.empty and (
+                    ('lhb_buy' in flow_data.columns) or
+                    ('lhb_sell' in flow_data.columns) or
+                    ('lhb_net_buy' in flow_data.columns)
+                ):
+                    success &= self.write_to_supabase(flow_data, 'trade_flow')
+                else:
+                    logger.warning('trade_flow 关键字段缺失，跳过 trade_flow 表写入')
             
             return success
             

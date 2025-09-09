@@ -10,7 +10,7 @@ import sys
 import logging
 import argparse
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, List
 import pandas as pd
 
 # 添加项目路径
@@ -154,6 +154,40 @@ class DailyDataSyncer:
         except Exception as e:
             logger.error(f"日线数据同步失败: {e}")
             return False
+
+    def sync_all_quotes_range(self, start_date: str, end_date: str = None, limit_codes: int = None, code_offset: int = 0, codes_list: List[str] = None) -> bool:
+        """一次性按股票维度回填区间日线（高效）
+
+        - 通过报表获取全市场代码（或限制数量），每只股票调用一次 HistoryQuotes 拉全区间
+        - 比按天同步效率高得多，适合大规模历史回填
+        """
+        logger.info(f"开始区间日线回填: {start_date} -> {end_date or start_date}")
+        try:
+            # 获取股票列表（优先外部传入，其次客户端获取）
+            codes = None
+            if codes_list:
+                codes = [c.strip() for c in codes_list if c and c.strip()]
+            else:
+                codes = self.ths_client.get_stock_list('all')
+            if not codes:
+                logger.error('无法获取股票列表')
+                return False
+            if code_offset:
+                codes = codes[code_offset:]
+            if limit_codes:
+                codes = codes[:max(1, int(limit_codes))]
+            logger.info(f"准备同步 {len(codes)} 只股票的区间日线数据")
+
+            # 调用数据同步器一次性拉取并写库
+            ok = self.data_sync.sync_daily_quotes(codes, start_date, end_date)
+            if ok:
+                logger.info("区间日线回填成功")
+            else:
+                logger.error("区间日线回填失败")
+            return ok
+        except Exception as e:
+            logger.error(f"区间日线回填异常: {e}")
+            return False
     
     def sync_historical_data(self, start_date: str, end_date: str = None) -> Dict[str, Any]:
         """同步历史数据段"""
@@ -284,18 +318,22 @@ def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='日线数据同步工具')
     parser.add_argument('command', 
-                       choices=['daily', 'historical', 'check-gap'],
-                       help='执行命令: daily(每日同步), historical(历史同步), check-gap(检查缺口)')
+                       choices=['daily', 'historical', 'historical-range', 'check-gap'],
+                       help='执行命令: daily(每日同步), historical(逐日回补), historical-range(按股票区间回补), check-gap(检查缺口)')
     parser.add_argument('--date', help='指定日期 (YYYY-MM-DD)')
     parser.add_argument('--start-date', help='历史同步开始日期')
     parser.add_argument('--end-date', help='历史同步结束日期')
     parser.add_argument('--force', action='store_true', help='强制同步，忽略现有数据')
+    parser.add_argument('--limit-codes', type=int, help='限制股票数量用于抽样或分批')
+    parser.add_argument('--code-offset', type=int, default=0, help='股票列表起始偏移（配合limit-codes分批跑）')
+    parser.add_argument('--codes', help='逗号分隔股票代码列表，如 000001.SZ,600000.SH')
+    parser.add_argument('--codes-file', help='包含股票代码的一列文本/CSV文件路径')
     
     args = parser.parse_args()
     
-    syncer = DailyDataSyncer()
-    
     try:
+        logger.info(f"命令: {args.command}, start={args.start_date}, end={args.end_date}, codes_file={args.codes_file}, codes={bool(args.codes)}")
+        syncer = DailyDataSyncer()
         if args.command == 'daily':
             if args.date:
                 # 同步指定日期
@@ -314,6 +352,34 @@ def main():
             results = syncer.sync_historical_data(args.start_date, args.end_date)
             success = results['failed_days'] == 0
             
+        elif args.command == 'historical-range':
+            if not args.start_date:
+                logger.error("历史区间回补需要指定 --start-date 参数")
+                return 1
+            # 解析外部传入的代码
+            external_codes = None
+            try:
+                if args.codes_file:
+                    import pandas as pd
+                    if args.codes_file.lower().endswith(('.csv', '.tsv')):
+                        df_codes = pd.read_csv(args.codes_file)
+                        # 取第一列非空
+                        first_col = df_codes.columns[0]
+                        external_codes = df_codes[first_col].dropna().astype(str).tolist()
+                    else:
+                        with open(args.codes_file, 'r', encoding='utf-8') as f:
+                            external_codes = [line.strip() for line in f if line.strip()]
+                elif args.codes:
+                    external_codes = [c.strip() for c in args.codes.split(',') if c.strip()]
+                logger.info(f"外部代码读取: {0 if not external_codes else len(external_codes)} 条")
+            except Exception as e:
+                logger.error(f"读取外部代码列表失败: {e}")
+                return 1
+
+            success = syncer.sync_all_quotes_range(
+                args.start_date, args.end_date, args.limit_codes, args.code_offset, external_codes
+            )
+
         elif args.command == 'check-gap':
             date_to_check = args.date or syncer.get_latest_trading_date()
             gap_info = syncer.check_data_gap(date_to_check)

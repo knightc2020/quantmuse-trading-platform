@@ -56,8 +56,9 @@ def check_environment():
     # 检查同花顺客户端
     try:
         ths_client = get_tonghuashun_client()
-        if not ths_client.is_logged_in:
-            logger.error("同花顺客户端登录失败，请检查用户名密码")
+        # 主动触发带重试的登录
+        if not ths_client._ensure_login():
+            logger.error("同花顺客户端登录失败，请检查用户名密码/权限/网络")
             return False
         logger.info("✓ 同花顺客户端连接成功")
     except Exception as e:
