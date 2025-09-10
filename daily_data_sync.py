@@ -335,12 +335,40 @@ def main():
         logger.info(f"命令: {args.command}, start={args.start_date}, end={args.end_date}, codes_file={args.codes_file}, codes={bool(args.codes)}")
         syncer = DailyDataSyncer()
         if args.command == 'daily':
+            # 支持小样本测试：当提供 --limit-codes/--code-offset/--codes/--codes-file 时，走按股票区间接口
+            # 这样便于快速验证“抽取-清洗-写库”端到端流程
             if args.date:
-                # 同步指定日期
-                success = syncer.sync_daily_quotes_data(args.date, args.force)
-                logger.info(f"指定日期同步结果: {'成功' if success else '失败'}")
+                # 若提供外部代码或抽样参数，则调用按股票区间同步（start=end=date）
+                external_codes = None
+                if args.limit_codes or args.code_offset or args.codes or args.codes_file:
+                    try:
+                        if args.codes_file:
+                            import pandas as pd
+                            if args.codes_file.lower().endswith(('.csv', '.tsv')):
+                                df_codes = pd.read_csv(args.codes_file)
+                                first_col = df_codes.columns[0]
+                                external_codes = df_codes[first_col].dropna().astype(str).tolist()
+                            else:
+                                with open(args.codes_file, 'r', encoding='utf-8') as f:
+                                    external_codes = [line.strip() for line in f if line.strip()]
+                        elif args.codes:
+                            external_codes = [c.strip() for c in args.codes.split(',') if c.strip()]
+                        logger.info(f"daily模式-外部代码读取: {0 if not external_codes else len(external_codes)} 条")
+                    except Exception as e:
+                        logger.error(f"读取外部代码列表失败: {e}")
+                        return 1
+
+                    # 使用区间同步（start=end）+ 抽样/分批参数，开启 BD 指标补齐
+                    success = syncer.sync_all_quotes_range(
+                        args.date, args.date, args.limit_codes, args.code_offset, external_codes
+                    )
+                    logger.info(f"指定日期抽样同步结果: {'成功' if success else '失败'}")
+                else:
+                    # 正常每日单日同步（自动跳过已存在，除非 --force）
+                    success = syncer.sync_daily_quotes_data(args.date, args.force)
+                    logger.info(f"指定日期同步结果: {'成功' if success else '失败'}")
             else:
-                # 运行每日同步
+                # 运行每日同步（按调度策略）
                 success = syncer.run_daily_sync()
                 logger.info(f"每日同步结果: {'成功' if success else '失败'}")
                 

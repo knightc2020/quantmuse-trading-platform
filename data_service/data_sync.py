@@ -62,6 +62,8 @@ class DataSynchronizer:
             'daily_quotes': {
                 'target_table': 'daily_quotes',
                 'field_mapping': {
+                    'trade_date': 'trade_date',
+                    'code': 'code',
                     'time': 'trade_date',
                     'stock_code': 'code',
                     # 官方/实时与历史常见字段（若存在则映射）
@@ -86,7 +88,41 @@ class DataSynchronizer:
                     'pe_ttm': 'pe_ttm',
                     'pb': 'pb',
                     'total_mv': 'total_mv',
-                    'mv': 'mv'
+                    'mv': 'mv',
+                    # THS_BD 官方基础函数补充映射
+                    'ths_pre_close_stock': 'pre_close',
+                    'ths_open_price_stock': 'open',
+                    'ths_high_price_stock': 'high',
+                    'ths_low_stock': 'low',
+                    'ths_close_price_stock': 'close',
+                    'ths_avg_price_stock': 'avg_price',
+                    'ths_max_up_stock': 'upper_limit',
+                    'ths_max_down_stock': 'lower_limit',
+                    'ths_chg_ratio_stock': 'change_ratio',
+                    'ths_chg_stock': 'change',
+                    'ths_vol_stock': 'volume',
+                    'ths_vol_btin_stock': 'volume_btin',
+                    'ths_amt_btin_stock': 'amount_btin',
+                    'ths_trans_num_stock': 'trans_num',
+                    'ths_amt_stock': 'amount',
+                    'ths_vol_after_trading_stock': 'post_volume',
+                    'ths_trans_num_after_trading_stock': 'post_trans_num',
+                    'ths_amt_after_trading_stock': 'post_amount',
+                    'ths_turnover_ratio_stock': 'turnover_ratio',
+                    'ths_vaild_turnover_stock': 'valid_turnover_ratio',
+                    'ths_swing_stock': 'swing',
+                    'ths_relative_issue_price_chg_stock': 'rel_issue_chg',
+                    'ths_relative_issue_price_chg_ratio_stock': 'rel_issue_chg_ratio',
+                    'ths_relative_chg_ratio_stock': 'rel_market_chg_ratio',
+                    'ths_trading_status_stock': 'trade_status',
+                    'ths_continuous_suspension_days_stock': 'suspension_days',
+                    'ths_suspen_reason_stock': 'suspension_reason',
+                    'ths_af_stock': 'adj_factor',
+                    'ths_af2_stock': 'adj_factor2',
+                    'ths_up_and_down_status_stock': 'limit_status',
+                    'ths_last_td_date_stock': 'last_trade_date',
+                    'ths_specified_datenearly_td_date_stock': 'nearest_trade_date',
+                    'ths_ahshare_premium_rate_stock': 'ah_premium_rate'
                 },
                 'calculated_fields': {}
             }
@@ -163,6 +199,23 @@ class DataSynchronizer:
             
             df_transformed = df_transformed[list(available_fields.keys())].copy()
             df_transformed = df_transformed.rename(columns=available_fields)
+
+            # 处理重名列：优先使用靠后的列（通常为 THS_BD 指标），
+            # 同时用前列在后列为空时进行补齐，避免信息丢失
+            try:
+                cols = list(df_transformed.columns)
+                dup_names = [c for c in cols if cols.count(c) > 1]
+                for name in sorted(set(dup_names)):
+                    # 取所有同名列，按出现顺序从左到右
+                    sub = df_transformed.loc[:, [c == name for c in df_transformed.columns]]
+                    # 让靠后的列优先：前向填充后取最后一列
+                    combined = sub.ffill(axis=1).iloc[:, -1]
+                    df_transformed[name] = combined
+                if dup_names:
+                    # 删除多余同名列，只保留最后一个（已写入合并结果）
+                    df_transformed = df_transformed.loc[:, ~df_transformed.columns.duplicated(keep='last')]
+            except Exception as e:
+                logger.warning(f"去重合并列失败，将继续后续清洗: {e}")
             
             # 计算派生字段
             for calc_field, calc_func in calculated_fields.items():
@@ -187,23 +240,43 @@ class DataSynchronizer:
             df_clean = df.copy()
             
             # 处理日期字段
-            if 'trade_date' in df_clean.columns:
-                df_clean['trade_date'] = pd.to_datetime(df_clean['trade_date']).dt.strftime('%Y-%m-%d')
+            for dcol in ['trade_date','last_trade_date','nearest_trade_date']:
+                if dcol in df_clean.columns:
+                    ser = pd.to_datetime(df_clean[dcol], errors='coerce').dt.strftime('%Y-%m-%d')
+                    # 将无效日期转换为 None（避免写库时出现 'NaT' 字符串）
+                    ser = ser.replace('NaT', None)
+                    df_clean[dcol] = ser
             
             # 处理数值字段
             numeric_fields = ['buy_amt', 'sell_amt', 'net_amt', 'lhb_buy', 'lhb_sell', 'lhb_net_buy',
                              'pre_close', 'open', 'high', 'low', 'close', 'volume', 'amount',
-                             'turnover_ratio', 'pct_chg', 'change', 'change_ratio',
-                             'upper_limit', 'lower_limit', 'rise_day_count', 'avg_price',
-                             'pe_ttm', 'pb', 'total_mv', 'mv']
+                             'amount_btin', 'volume_btin', 'trans_num', 'post_volume', 'post_trans_num', 'post_amount',
+                             'turnover_ratio', 'valid_turnover_ratio', 'pct_chg', 'change', 'change_ratio',
+                             'upper_limit', 'lower_limit', 'rise_day_count', 'avg_price', 'swing',
+                             'rel_issue_chg', 'rel_issue_chg_ratio', 'rel_market_chg_ratio',
+                             'pe_ttm', 'pb', 'total_mv', 'mv', 'adj_factor', 'adj_factor2', 'ah_premium_rate']
             
             for field in numeric_fields:
                 if field in df_clean.columns:
                     df_clean[field] = pd.to_numeric(df_clean[field], errors='coerce')
                     df_clean[field] = df_clean[field].fillna(0)
+
+            # 强制为整数的字段，避免传入"0.0"导致 bigint 解析失败
+            integer_fields = [
+                'volume', 'volume_btin', 'trans_num', 'post_volume', 'post_trans_num',
+                'rise_day_count', 'suspension_days'
+            ]
+            for field in integer_fields:
+                if field in df_clean.columns:
+                    try:
+                        # 一律向最近整数取整后转为 Python int，确保 JSON 为整数
+                        df_clean[field] = pd.to_numeric(df_clean[field], errors='coerce').fillna(0).round().astype('int64')
+                    except Exception:
+                        # 退化路径：逐元素转换
+                        df_clean[field] = df_clean[field].apply(lambda x: int(float(str(x))) if pd.notnull(x) and str(x).strip() != '' else 0)
             
             # 处理字符串字段
-            text_fields = ['code', 'name', 'seat_name', 'seat_type', 'reason', 'trade_status']
+            text_fields = ['code', 'name', 'seat_name', 'seat_type', 'reason', 'trade_status', 'suspension_reason', 'limit_status']
             for field in text_fields:
                 if field in df_clean.columns:
                     df_clean[field] = df_clean[field].astype(str).fillna('')
@@ -261,6 +334,11 @@ class DataSynchronizer:
         }.get(table_type, None)
         
         try:
+            # 兜底处理：将所有 NaN/NaT 替换为 None，避免 JSON 序列化失败
+            try:
+                df = df.where(pd.notnull(df), None)
+            except Exception:
+                pass
             # 转换DataFrame为字典列表
             records = df.to_dict('records')
             

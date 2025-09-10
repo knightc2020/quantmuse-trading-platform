@@ -972,14 +972,104 @@ class TonghuasunDataClient:
                 if i + batch_size < len(stock_codes):
                     time.sleep(self.batch_interval)
 
+            base_df = None
             if all_data:
-                df = pd.concat(all_data, ignore_index=True)
-                df = self._align_history_columns(df)
-                logger.info(f"共获取日线数据 {len(df)} 条，列: {list(df.columns)}")
-                return df
+                base_df = pd.concat(all_data, ignore_index=True)
+                base_df = self._align_history_columns(base_df)
+                logger.info(f"共获取日线数据(HistoryQuotes) {len(base_df)} 条，列: {list(base_df.columns)}")
             else:
-                logger.warning("未获取到日线数据")
+                logger.warning("未获取到日线数据(HistoryQuotes)")
+
+            # 使用 THS_BD 批量获取官方基础函数指标，补齐空字段
+            def _bd_indicators() -> List[str]:
+                return [
+                    'ths_pre_close_stock','ths_open_price_stock','ths_high_price_stock','ths_low_stock',
+                    'ths_close_price_stock','ths_avg_price_stock','ths_max_up_stock','ths_max_down_stock',
+                    'ths_chg_ratio_stock','ths_chg_stock','ths_vol_stock','ths_vol_btin_stock',
+                    'ths_amt_btin_stock','ths_trans_num_stock','ths_amt_stock','ths_vol_after_trading_stock',
+                    'ths_trans_num_after_trading_stock','ths_amt_after_trading_stock','ths_turnover_ratio_stock',
+                    'ths_vaild_turnover_stock','ths_swing_stock','ths_relative_issue_price_chg_stock',
+                    'ths_relative_issue_price_chg_ratio_stock','ths_relative_chg_ratio_stock','ths_trading_status_stock',
+                    'ths_continuous_suspension_days_stock','ths_suspen_reason_stock','ths_af_stock','ths_af2_stock',
+                    'ths_up_and_down_status_stock','ths_last_td_date_stock','ths_specified_datenearly_td_date_stock',
+                    'ths_ahshare_premium_rate_stock'
+                ]
+
+            def _bd_params_for_date(date_str: str) -> str:
+                # 默认每个指标采用 "date,0"，少数仅日期的指标也兼容
+                inds = _bd_indicators()
+                params = []
+                for name in inds:
+                    if name in (
+                        'ths_max_up_stock','ths_max_down_stock','ths_amt_btin_stock','ths_amt_stock',
+                        'ths_trans_num_after_trading_stock','ths_amt_after_trading_stock',
+                        'ths_trading_status_stock','ths_last_td_date_stock',
+                        'ths_specified_datenearly_td_date_stock','ths_ahshare_premium_rate_stock'
+                    ):
+                        params.append(date_str)
+                    elif name == 'ths_relative_chg_ratio_stock':
+                        params.append(f"{date_str},1,0")
+                    else:
+                        params.append(f"{date_str},0")
+                return ';'.join(params)
+
+            def _fetch_bd_by_day(codes: List[str], date_str: str, batch_size: int = 200) -> Optional[pd.DataFrame]:
+                inds = _bd_indicators()
+                indicators_str = ';'.join(inds)
+                param_str = _bd_params_for_date(date_str)
+                parts: List[pd.DataFrame] = []
+                for i in range(0, len(codes), batch_size):
+                    sub = codes[i:i+batch_size]
+                    self.rate_limiter.acquire()
+                    df = self._call_BD(sub, indicators_str, param_str)
+                    if df is not None and not df.empty:
+                        df['trade_date'] = date_str
+                        # 统一代码列名
+                        if 'thscode' in df.columns and 'stock_code' not in df.columns:
+                            df = df.rename(columns={'thscode':'stock_code'})
+                        if 'ths_stock_code_stock' in df.columns and 'stock_code' not in df.columns:
+                            df = df.rename(columns={'ths_stock_code_stock':'stock_code'})
+                        parts.append(df)
+                    time.sleep(0.1)
+                if parts:
+                    return pd.concat(parts, ignore_index=True)
                 return None
+
+            bd_frames = []
+            # 若日期范围较小（<= 5 个交易日），使用 BD 补齐；否则仅使用 HistoryQuotes 以避免巨量请求
+            s_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            e_dt = datetime.strptime(end_date, '%Y-%m-%d') if end_date else s_dt
+            max_days_for_bd = 5
+            if (e_dt - s_dt).days <= max_days_for_bd:
+                cur = s_dt
+                while cur <= e_dt:
+                    date_str = cur.strftime('%Y-%m-%d')
+                    try:
+                        bd_df = _fetch_bd_by_day(stock_codes, date_str)
+                        if bd_df is not None and not bd_df.empty:
+                            bd_frames.append(bd_df)
+                    except Exception as ie:
+                        logger.warning(f"BD获取 {date_str} 失败: {ie}")
+                    cur += timedelta(days=1)
+
+            if bd_frames:
+                df_bd = pd.concat(bd_frames, ignore_index=True)
+                # 若存在 History 基础表，则按 trade_date+stock_code 合并补齐
+                if base_df is not None and not base_df.empty:
+                    if 'stock_code' not in base_df.columns and 'code' in base_df.columns:
+                        base_df = base_df.rename(columns={'code':'stock_code'})
+                    if 'trade_date' not in base_df.columns and 'time' in base_df.columns:
+                        base_df = base_df.rename(columns={'time':'trade_date'})
+                    merged = pd.merge(
+                        base_df, df_bd,
+                        on=['trade_date','stock_code'], how='outer', suffixes=('', '_bd')
+                    )
+                    return merged
+                else:
+                    return df_bd
+
+            # 仅 HistoryQuotes 可用时
+            return base_df
 
         except Exception as e:
             logger.error(f"获取日线数据失败: {e}")
