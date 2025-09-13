@@ -201,3 +201,6 @@ npm-debug.log*
 .dockerignore
 Dockerfile
 docker-compose.yml 
+# Backups
+backups/
+*.tar.gz
